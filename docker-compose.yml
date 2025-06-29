@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  lifetracker:
+    build: .
+    ports:
+      - "8501:8501"
+    volumes:
+      - .:/app
+      - ./data:/app/data
+    environment:
+      - STREAMLIT_SERVER_FILEWATCH_ENABLED=true
+      - TZ=Asia/Seoul  # 한국 시간대 설정
+    restart: unless-stopped

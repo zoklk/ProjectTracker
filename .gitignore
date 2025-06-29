@@ -1,0 +1,81 @@
+# test 파일
+test_*.py
+
+# 데이터베이스 및 개인 데이터
+data/
+*.db
+*.sqlite
+*.sqlite3
+
+# Python 캐시 및 컴파일 파일
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# 환경 변수 및 설정
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+config.ini
+secrets.json
+config.py
+
+# Docker 관련
+.dockerignore
+
+# IDE 및 에디터
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# 로그 파일
+*.log
+logs/
+
+# 임시 파일
+*.tmp
+*.temp
+temp/
+tmp/
+
+# Streamlit 관련
+.streamlit/secrets.toml
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# ngrok 관련
+ngrok
+ngrok.exe
+
+# 백업 파일
+*.bak
+*.backup
+
+# 압축 파일 (필요시)
+*.zip
+*.tar.gz
+*.rar
