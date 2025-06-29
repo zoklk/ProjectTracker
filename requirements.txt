@@ -5,3 +5,4 @@ python-dateutil==2.8.2
 sqlalchemy>=2.0.0
 requests>=2.31.0
 python-dotenv>=1.0.0
+notion-client==2.2.1
