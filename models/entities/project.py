@@ -67,13 +67,6 @@ class Project(Base):
         comment="목표치 (로컬에서 설정)"
     )
 
-    target_unit: Mapped[str] = mapped_column(
-        String(50),
-        nullable=False,
-        default="units",
-        comment="목표 단위 (페이지, 강의, 챕터 등)"
-    )
-
     current_progress: Mapped[int] = mapped_column(
         Integer,
         nullable=False,
