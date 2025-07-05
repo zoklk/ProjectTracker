@@ -1,6 +1,5 @@
 """
-Project 엔티티 - 프로젝트 정보를 관리하는 ORM 모델
-노션 동기화와 로컬 관리 기능을 포함
+Project 엔티티 - 단순화된 버전 (캐시 제거)
 """
 
 from datetime import datetime, date
@@ -79,7 +78,6 @@ class Project(Base):
         "WorkLog",
         back_populates="project",
         cascade="all, delete-orphan"
-        # order_by 제거 - 필요시 쿼리에서 직접 정렬
     )
 
     # ===== 제약조건 =====
@@ -106,29 +104,29 @@ class Project(Base):
         Index("ix_projects_notion_page_id", "notion_page_id"),
     )
 
-    # ===== 계산된 속성 =====
+    # ===== 속성값 계산 =====
     @property
     def progress_percentage(self) -> float:
-        """진행률을 퍼센트로 반환 (0.0 ~ 100.0)"""
+        """진행률을 퍼센트로 반환 (매번 계산)"""
         if self.target_value <= 0:
             return 0.0
         return min((self.current_progress / self.target_value) * 100, 100.0)
 
     @property
     def days_until_deadline(self) -> int:
-        """마감일까지 남은 일수 (음수면 지연)"""
+        """마감일까지 남은 일수 (매번 계산)"""
         today = date.today()
         delta = self.end_date - today
         return delta.days
 
     @property
     def is_overdue(self) -> bool:
-        """마감일 초과 여부"""
+        """마감일 초과 여부 (매번 계산)"""
         return self.days_until_deadline < 0
 
     @property
     def d_day_display(self) -> str:
-        """D-Day 표시용 문자열"""
+        """D-Day 표시용 문자열 (매번 계산)"""
         days = self.days_until_deadline
         if days > 0:
             return f"D-{days}"
@@ -136,3 +134,22 @@ class Project(Base):
             return "D-Day"
         else:
             return f"D+{abs(days)}"
+
+    # ===== Base.to_dict() 오버라이드 =====
+    def to_dict(self) -> dict:
+        """
+        Entity를 Dict로 변환 (property 포함)
+        Base의 to_dict()를 오버라이드하여 확장
+        """
+        # 기본 컬럼들은 Base의 방식 사용
+        base_dict = super().to_dict()
+
+        # property 추가
+        base_dict.update({
+            'progress_percentage': self.progress_percentage,
+            'days_until_deadline': self.days_until_deadline,
+            'is_overdue': self.is_overdue,
+            'd_day_display': self.d_day_display
+        })
+
+        return base_dict

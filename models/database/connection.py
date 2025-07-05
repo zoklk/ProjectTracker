@@ -8,6 +8,7 @@ from typing import Generator
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.pool import StaticPool
+from contextlib import contextmanager
 
 from .base import Base
 
@@ -118,6 +119,7 @@ class DatabaseManager:
         """
         return self._session_factory()
 
+    @contextmanager
     def get_session_context(self) -> Generator[Session, None, None]:
         """
         대체로: 컨텍스트 매니저를 사용한 자동 세션 관리
@@ -132,27 +134,5 @@ class DatabaseManager:
         finally:
             session.close()
 
-    @property
-    def engine(self):
-        """엔진 인스턴스 반환"""
-        return self._engine
-
-
 # 전역 데이터베이스 매니저 인스턴스
 db_manager = DatabaseManager()
-
-
-def get_db_session() -> Generator[Session, None, None]:
-    """
-    의존성 주입을 위한 세션 제공 함수
-    FastAPI나 다른 프레임워크와의 통합에 유용
-    """
-    yield from db_manager.get_session_context()
-
-
-def get_db() -> Session:
-    """
-    단순한 세션 반환 함수
-    Streamlit과 같은 환경에서 사용
-    """
-    return db_manager.get_session()
