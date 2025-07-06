@@ -1,17 +1,16 @@
-"""
-데이터베이스 연결 및 세션 관리
-SQLite 기반의 로컬 데이터베이스 설정
-"""
-
 import os
 from typing import Generator
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.pool import StaticPool
+from sqlalchemy.exc import IntegrityError, OperationalError, StatementError
 from contextlib import contextmanager
 
 from .base import Base
 
+class DatabaseError(Exception):
+    """데이터베이스 관련 모든 오류"""
+    pass
 
 class DatabaseManager:
     """
@@ -45,10 +44,10 @@ class DatabaseManager:
             self.create_tables()
             self._configure_sqlite()
 
-            self.logger.info("✅ 데이터베이스 초기화 완료")
+            self.logger.info("💾✅ 데이터베이스 초기화 완료")
 
         except Exception as e:
-            self.logger.error(f"❌ 데이터베이스 초기화 실패: {e}")
+            self.logger.error(f"💾❌ 데이터베이스 초기화 실패: {str(e)}")
             raise
 
     def _get_database_url(self) -> str:
@@ -63,16 +62,16 @@ class DatabaseManager:
         # 2: 디렉토리 존재 확인 및 생성
         if not os.path.exists(data_dir):
             os.makedirs(data_dir, mode=0o755)
-            self.logger.debug(f"🗂️ 데이터 디렉토리 생성: {data_dir}")
+            self.logger.debug(f"💾🔄 데이터 디렉토리 생성: {data_dir}")
 
         # 3: DB 파일 경로 생성
         db_path = os.path.join(data_dir, 'ProjectTracker.db')
 
         # 4: DB 파일 존재 여부 확인
         if not os.path.exists(db_path):
-            self.logger.debug(f"🔧 새로운 데이터베이스 생성: {db_path}")
+            self.logger.debug(f"💾🔄 새로운 데이터베이스 생성: {db_path}")
         else:
-            self.logger.debug(f"🔗 기존 데이터베이스 연결: {db_path}")
+            self.logger.debug(f"💾🔄 기존 데이터베이스 연결: {db_path}")
 
         return f"sqlite:///{db_path}"
 
@@ -87,10 +86,10 @@ class DatabaseManager:
                 connect_args={"check_same_thread": False},
                 poolclass=StaticPool,
             )
-            self.logger.debug("🔧 SQLAlchemy 엔진 생성 완료")
+            self.logger.debug("💾✅ SQLAlchemy 엔진 생성 완료")
 
         except Exception as e:
-            self.logger.error(f"❌ SQLAlchemy 엔진 생성 실패: {e}")
+            self.logger.error(f"💾❌ SQLAlchemy 엔진 생성 실패: {str(e)}")
             raise
 
     def _create_session_factory(self) -> None:
@@ -103,10 +102,10 @@ class DatabaseManager:
                 autocommit=False,
                 autoflush=False,
             )
-            self.logger.debug("🔧 세션 팩토리 생성 완료")
+            self.logger.debug("💾✅ 세션 팩토리 생성 완료")
 
         except Exception as e:
-            self.logger.error(f"❌ 세션 팩토리 생성 실패: {e}")
+            self.logger.error(f"💾❌ 세션 팩토리 생성 실패: {str(e)}")
             raise
 
     def create_tables(self) -> None:
@@ -120,10 +119,10 @@ class DatabaseManager:
 
             # 2: 테이블 생성
             Base.metadata.create_all(bind=self._engine)
-            self.logger.debug("📋 데이터베이스 테이블 생성/확인 완료")
+            self.logger.debug("💾✅ 데이터베이스 테이블 생성/확인 완료")
 
         except Exception as e:
-            self.logger.error(f"❌ 테이블 생성 실패: {e}")
+            self.logger.error(f"💾❌ 테이블 생성 실패: {str(e)}")
             raise
 
     def _configure_sqlite(self) -> None:
@@ -142,10 +141,10 @@ class DatabaseManager:
                 conn.execute(text("PRAGMA cache_size=1000"))
                 conn.commit()
 
-            self.logger.debug("⚙️ SQLite 최적화 설정 완료")
+            self.logger.debug("💾✅ SQLite 최적화 설정 완료")
 
         except Exception as e:
-            self.logger.error(f"❌ SQLite 설정 실패: {e}")
+            self.logger.error(f"💾❌ SQLite 설정 실패: {str(e)}")
             raise
 
     def get_session(self) -> Session:
@@ -153,24 +152,35 @@ class DatabaseManager:
         특수용도: 세션 수동 관리
         """
         if self._session_factory is None:
-            self.logger.error("❌ 세션 팩토리가 초기화되지 않음")
+            self.logger.error("💾❌ 세션 팩토리가 초기화되지 않음")
             raise RuntimeError("데이터베이스가 초기화되지 않았습니다.")
 
         return self._session_factory()
 
     @contextmanager
     def get_session_context(self) -> Generator[Session, None, None]:
-        """
-        대체로: 컨텍스트 매니저를 사용한 자동 세션 관리
-        """
+        """컨텍스트 매니저"""
         session = self.get_session()
         try:
             yield session
             session.commit()
-        except Exception:
+
+        except IntegrityError as e:
             session.rollback()
-            self.logger.error("❌ 데이터베이스 트랜잭션 롤백: {e}")
-            raise
+            raise DatabaseError(f"💾❌ 프로젝트 중복 또는 데이터 제약조건 위반: {str(e)}")
+
+        except OperationalError as e:
+            session.rollback()
+            raise DatabaseError(f"💾❌ 데이터베이스 연결 또는 접근 실패: {str(e)}")
+
+        except StatementError as e:
+            session.rollback()
+            raise DatabaseError(f"💾❌ 데이터베이스 쿼리 실행 오류: {str(e)}")
+
+        except Exception as e:
+            session.rollback()
+            raise DatabaseError(f"💾❌ 데이터베이스 기타 오류: {str(e)}")
+
         finally:
             session.close()
 

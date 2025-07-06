@@ -1,21 +1,14 @@
-"""
-프로젝트 Repository
-딕셔너리 형태로 반환하여 객체 관계 완전 분리
-"""
-
 from typing import List, Optional, Dict, Any
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_
-import logging
 
 from ..database.connection import db_manager
 from ..entities.project import Project
 
 class ProjectRepository:
     """프로젝트 데이터 액세스 객체 - 딕셔너리 반환"""
-
     def __init__(self):
-        self.logger = logging.getLogger(__name__)
+        pass
 
     # ===== 조회 메서드들 (Dict 반환) =====
     def find_by_id(self, project_id: int) -> Optional[Dict[str, Any]]:
@@ -62,47 +55,42 @@ class ProjectRepository:
 
 
     # ===== 생성 메서드들 (Entity 반환) =====
-    def insert(self, project: Project) -> bool:
+    def insert(self, project: Project) -> None:
         """새 프로젝트 생성 - 성공 여부 반환"""
-        try:
-            with db_manager.get_session_context() as session:
-                session.add(project)
-            # 컨텍스트 매니저가 성공적으로 완료되면 True 반환
-            return True
-        except Exception:
-            return False
+        with db_manager.get_session_context() as session:
+            session.add(project)
 
     def bulk_insert(self, projects: List[Project]) -> int:
-        """여러 프로젝트 일괄 생성"""
+        """여러 프로젝트 일괄 생성 - All or Nothing"""
         if not projects:
             return 0
 
         with db_manager.get_session_context() as session:
-            created_count = 0
-
             for project in projects:
-                try:
-                    session.add(project)
-                    session.flush()
-                    created_count += 1
-                except Exception as e:
-                    session.rollback()
-                    self.logger.warning(f"프로젝트 생성 실패: {e}")
+                session.add(project)
 
-            return created_count
-
+        return len(projects)
 
     # ===== 수정 메서드들 (Entity 반환) =====
-    def update(self, project: Project) -> bool:
+    def update(self, project: Project) -> None:
         """프로젝트 수정 - 성공 여부 반환"""
-        try:
-            with db_manager.get_session_context() as session:
-                session.merge(project)
-            return True
-        except Exception:
-            return False
+        with db_manager.get_session_context() as session:
+            session.merge(project)
 
-    def bulk_update(self, updates: List[Dict]) -> int:
+    def bulk_update(self, projects: List[Project]) -> int:
+        """여러 프로젝트 전체 필드 일괄 수정 (노션 동기화용)"""
+        if not projects:
+            return 0
+
+        with db_manager.get_session_context() as session:
+            updated_count = 0
+            for project in projects:
+                session.merge(project)
+                updated_count += 1
+
+        return updated_count
+
+    def bulk_update_progress(self, updates: List[Dict]) -> int:
         """여러 프로젝트의 진행률 일괄 수정"""
         if not updates:
             return 0
@@ -123,7 +111,7 @@ class ProjectRepository:
                 })
                 updated_count += result
 
-            return updated_count
+        return updated_count
 
     # ===== 삭제 메서드들 =====
     def delete(self, project_id: int) -> bool:
@@ -147,7 +135,7 @@ class ProjectRepository:
             return deleted_count
 
     def delete_by_notion_ids(self, notion_ids: List[str]) -> int:
-        """노션 페이지 ID 목록으로 프로젝트들 삭제"""
+        """노션 페이지 ID 목록으로 프로젝트들 삭제 (노션 동기화용)"""
         if not notion_ids:
             return 0
 
