@@ -72,9 +72,10 @@ class ProjectView:
                         "프로젝트명": project["name"],
                         "시작날짜": str(project["start_date"]),
                         "종료날짜": str(project["end_date"]),
-                        "D-day": project["d_day_display"],  # 이미 계산된 값 사용
-                        "목표": project["target_value"],
-                        "현재": project["current_progress"]
+                        "D-day": project["d_day_display"],
+                        "초기값": project["initial_progress"],    # 편집 가능
+                        "현재값": project["current_progress"],    # 읽기 전용 (계산값)
+                        "목표치": project["target_value"]         # 편집 가능
                     })
 
                 # 3: 데이터프레임 생성
@@ -84,10 +85,10 @@ class ProjectView:
                 # 4: 수정 가능한 열 설정
                 edited_df = st.data_editor(
                     df,
-                    disabled=["ID", "프로젝트명", "시작날짜", "종료날짜", "D-day"],
+                    disabled=["ID", "프로젝트명", "시작날짜", "종료날짜", "D-day", "현재값"],
                     column_config={
-                        "목표": st.column_config.NumberColumn(min_value=1, step=1),
-                        "현재": st.column_config.NumberColumn(min_value=0, step=1)
+                        "초기값": st.column_config.NumberColumn(min_value=0, step=1),
+                        "목표치": st.column_config.NumberColumn(min_value=1, step=1)
                     },
                     use_container_width=True,
                     hide_index=True,
@@ -140,9 +141,10 @@ class ProjectView:
                         "프로젝트명": project["name"],
                         "시작날짜": str(project["start_date"]),
                         "종료날짜": str(project["end_date"]),
-                        "D-day": project["d_day_display"],  # 이미 계산된 값 사용
-                        "목표": project["target_value"],
-                        "현재": project["current_progress"]
+                        "D-day": project["d_day_display"],
+                        "초기값": project["initial_progress"],
+                        "현재값": project["current_progress"],    # 계산값
+                        "목표치": project["target_value"]
                     })
 
                 # 3: 데이터프레임 생성 (읽기 전용)
@@ -183,17 +185,17 @@ class ProjectView:
             changes = []
             for idx, (orig_row, edit_row) in enumerate(zip(original_df.itertuples(), edited_df.itertuples())):
                 project_id = orig_row.ID
-                orig_target = orig_row.목표
-                orig_current = orig_row.현재
-                edit_target = edit_row.목표
-                edit_current = edit_row.현재
+                orig_target = orig_row.목표치
+                orig_initial = orig_row.초기값
+                edit_target = edit_row.목표치
+                edit_initial = edit_row.초기값
 
                 # 2: 변경사항 저장
-                if orig_target != edit_target or orig_current != edit_current:
+                if orig_target != edit_target or orig_initial != edit_initial:
                     changes.append({
                         'id': project_id,
                         'target_value': edit_target,
-                        'current_progress': edit_current,
+                        'initial_progress': edit_initial,
                     })
             # 3: 변경사항 업데이트
             with st.spinner(f"{len(changes)}개 프로젝트 진행률 업데이트 중..."):

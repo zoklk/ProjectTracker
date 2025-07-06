@@ -12,11 +12,6 @@ from ..database.base import Base
 
 
 class Project(Base):
-    """
-    프로젝트 정보를 저장하는 메인 테이블
-    노션과 동기화되며 로컬에서 진행상황을 관리
-    """
-
     __tablename__ = "projects"
 
     # ===== Primary Key =====
@@ -62,11 +57,11 @@ class Project(Base):
         comment="목표치 (로컬에서 설정)"
     )
 
-    current_progress: Mapped[int] = mapped_column(
+    initial_progress: Mapped[int] = mapped_column(
         Integer,
         nullable=False,
         default=0,
-        comment="현재 진행도 (초기값 + 작업로그 누적)"
+        comment="초기 진행도 (BUG/#8)"
     )
 
     # ===== 관계 설정 =====
@@ -83,8 +78,8 @@ class Project(Base):
             name="valid_status"
         ),
         CheckConstraint(
-            "current_progress >= 0",
-            name="valid_progress"
+            "initial_progress >= 0",
+            name="valid_initial_progress"
         ),
         CheckConstraint(
             "target_value > 0",
@@ -102,11 +97,10 @@ class Project(Base):
 
     # ===== 속성값 계산 =====
     @property
-    def progress_percentage(self) -> float:
-        """진행률을 퍼센트로 반환 (매번 계산)"""
-        if self.target_value <= 0:
-            return 0.0
-        return min((self.current_progress / self.target_value) * 100, 100.0)
+    def current_progress(self) -> int:
+        """현재 진행도 = 초기값 + 작업로그 누적 (자동 계산)"""
+        work_logs_sum = sum(log.progress_added for log in self.work_logs)
+        return self.initial_progress + work_logs_sum
 
     @property
     def days_until_deadline(self) -> int:
@@ -133,16 +127,13 @@ class Project(Base):
 
     # ===== Base.to_dict() 오버라이드 =====
     def to_dict(self) -> dict:
-        """
-        Entity를 Dict로 변환 (property 포함)
-        Base의 to_dict()를 오버라이드하여 확장
-        """
-        # 기본 컬럼들은 Base의 방식 사용
+        """Base의 to_dict()를 오버라이드"""
+        # 1: 기본 컬럼들은 Base의 방식 사용
         base_dict = super().to_dict()
 
-        # property 추가
+        # 2: property 추가
         base_dict.update({
-            'progress_percentage': self.progress_percentage,
+            'current_progress': self.current_progress,  # 계산된 현재 진행도
             'days_until_deadline': self.days_until_deadline,
             'is_overdue': self.is_overdue,
             'd_day_display': self.d_day_display
