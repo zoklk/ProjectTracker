@@ -1,8 +1,3 @@
-"""
-SQLAlchemy Base 설정
-ORM 모델들의 기본 클래스와 메타데이터 정의
-"""
-
 from sqlalchemy import MetaData
 from sqlalchemy.orm import DeclarativeBase
 from typing import Any

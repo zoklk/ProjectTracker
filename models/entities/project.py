@@ -1,7 +1,3 @@
-"""
-Project 엔티티 - 단순화된 버전 (캐시 제거)
-"""
-
 from datetime import datetime, date
 from typing import Optional, List, TYPE_CHECKING
 from sqlalchemy import (
@@ -43,7 +39,7 @@ class Project(Base):
     status: Mapped[str] = mapped_column(
         String(20),
         nullable=False,
-        default="진행 중",
+        default="Null",
         comment="상태 (노션에서 가져옴)"
     )
 

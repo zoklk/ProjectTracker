@@ -52,7 +52,7 @@ class ProjectView:
             self.logger.debug("✅ 동기화 섹션 렌더링 성공")
 
         except Exception as e:
-            self.logger.error(f"❌ 동기화 섹션 렌더링 실패: {e}")
+            self.logger.error(f"❌ 동기화 섹션 렌더링 실패: {str(e)}")
             st.error("동기화 섹션을 불러오는데 실패했습니다.")
 
     def _render_active_projects(self):
@@ -120,7 +120,7 @@ class ProjectView:
             self.logger.debug("✅ 진행 중 프로젝트 섹션 렌더링 성공")
 
         except Exception as e:
-            self.logger.error(f"❌ 진행 중 프로젝트 섹션 렌더링 실패: {e}")
+            self.logger.error(f"❌ 진행 중 프로젝트 섹션 렌더링 실패: {str(e)}")
             st.error("진행 중 프로젝트를 불러오는데 실패했습니다.")
 
     def _render_archived_projects(self):
@@ -156,7 +156,7 @@ class ProjectView:
             self.logger.debug("✅ 아카이브 섹션 렌더링 성공")
 
         except Exception as e:
-            self.logger.error(f"❌ 아카이브 섹션 렌더링 실패: {e}")
+            self.logger.error(f"❌ 아카이브 섹션 렌더링 실패: {str(e)}")
             st.error("아카이브를 불러오는데 실패했습니다.")
 
     def _handle_sync_button(self):
