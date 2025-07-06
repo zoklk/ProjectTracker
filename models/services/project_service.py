@@ -182,7 +182,7 @@ class ProjectService:
             start_date=project_dict['start_date'],
             end_date=project_dict['end_date'],
             target_value=project_dict['target_value'],
-            current_progress=project_dict['current_progress']
+            initial_progress=project_dict['initial_progress']
         )
 
     def _needs_update_dict(self, existing_project_dict: Dict, notion_data: Dict) -> bool:
@@ -203,7 +203,7 @@ class ProjectService:
             start_date=notion_data['start_date'],
             end_date=notion_data['end_date'],
             target_value=1,  # 기본값
-            current_progress=0  # 기본값
+            initial_progress=0  # 기본값
         )
 
     def _update_project_fields(self, existing_project: Project, notion_data: Dict):
@@ -226,7 +226,7 @@ class ProjectService:
                     validated_updates.append({
                         'id': change['id'],
                         'target_value': change['target_value'],
-                        'current_progress': change['current_progress']
+                        'initial_progress': change['initial_progress']
                     })
                 else:
                     invalid_count += 1
@@ -250,18 +250,18 @@ class ProjectService:
         try:
             project_id = data.get('id')
             target_value = data.get('target_value')
-            current_progress = data.get('current_progress')
+            initial_progress = data.get('initial_progress')
 
             # 필수 필드 체크
-            if not all([project_id, target_value is not None, current_progress is not None]):
+            if not all([project_id, target_value is not None, initial_progress is not None]):
                 return False
 
             # 숫자 타입 체크
-            if not isinstance(target_value, (int, float)) or not isinstance(current_progress, (int, float)):
+            if not isinstance(target_value, (int, float)) or not isinstance(initial_progress, (int, float)):
                 return False
 
             # 비즈니스 규칙 체크
-            if target_value <= 0 or current_progress < 0:
+            if target_value <= 0 or initial_progress < 0:
                 return False
 
             return True

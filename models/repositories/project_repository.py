@@ -101,13 +101,13 @@ class ProjectRepository:
             for update_data in updates:
                 project_id = update_data['id']
                 target_value = update_data['target_value']
-                current_progress = update_data['current_progress']
+                initial_progress = update_data['initial_progress']
 
                 result = session.query(Project).filter(
                     Project.id == project_id
                 ).update({
                     'target_value': target_value,
-                    'current_progress': current_progress
+                    'initial_progress': initial_progress
                 })
                 updated_count += result
 
