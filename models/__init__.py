@@ -4,7 +4,7 @@ Models 패키지 초기화
 """
 
 # Database 관련
-from .database import Base, DatabaseManager, db_manager, get_db_session, get_db
+from .database import Base, DatabaseManager, db_manager
 
 # Entities 관련
 from .entities import Project, WorkLog
@@ -12,11 +12,9 @@ from .entities import Project, WorkLog
 __all__ = [
     # Database
     "Base",
-    "DatabaseManager", 
-    "db_manager",
-    "get_db_session",
-    "get_db",
-    
+    "DatabaseManager",
+    "db_manager"
+
     # Entities
     "Project",
     "WorkLog"
