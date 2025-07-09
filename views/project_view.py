@@ -39,14 +39,14 @@ class ProjectView:
         self._render_active_projects()
         self._render_archived_projects()
 
+    # ===== UI 컴포넌트 렌더링 메서드들 =====
     def _render_sync_section(self):
         """노션 동기화 섹션 - UI 렌더링만 담당"""
         try:
-            st.header("🔄 노션과 동기화")
             col1, col2 = st.columns([3, 1])
 
             with col2:
-                if st.button("📋 노션과 동기화", type="primary", use_container_width=True):
+                if st.button("🔄 노션과 동기화", type="primary", use_container_width=True):
                     self._handle_sync_button()
 
             self.logger.debug("✅ 동기화 섹션 렌더링 성공")
@@ -58,10 +58,16 @@ class ProjectView:
     def _render_active_projects(self):
         """진행 중 프로젝트 목록 섹션"""
         try:
-            st.header("📖 진행 중 프로젝트")
+            st.markdown("---")
+            st.header("진행 중 프로젝트")
 
-            # 1: 진행 중 프로젝트 데이터 가져오기
-            active_projects = self.controller.get_active_projects()
+            # 1: 진행 중 프로젝트 데이터 캐싱
+            session_key = 'active_projects'
+            if session_key not in st.session_state:
+                active_projects = self.controller.get_active_projects()
+                st.session_state[session_key] = active_projects
+            else:
+                active_projects = st.session_state[session_key]
 
             if active_projects:
                 # 2: 테이블 데이터 준비
@@ -80,9 +86,6 @@ class ProjectView:
 
                 # 3: 데이터프레임 생성
                 df = pd.DataFrame(table_data)
-                st.info("📝 **목표**와 **현재** 열만 수정 가능합니다. 수정 후 아래 저장 버튼을 눌러주세요.")
-
-                # 4: 수정 가능한 열 설정
                 edited_df = st.data_editor(
                     df,
                     disabled=["ID", "프로젝트명", "시작날짜", "종료날짜", "D-day", "현재값"],
@@ -95,12 +98,12 @@ class ProjectView:
                     key="active_projects_editor"
                 )
 
-                # 5: 데이터 변경 감지 및 저장 버튼
+                # 4: 데이터 변경 감지 및 저장 버튼
                 col1, col2, col3 = st.columns([2, 1, 1])
                 with col2:
                     changes_detected = not df.equals(edited_df)
                     if changes_detected:
-                        st.warning("📝 변경사항이 감지되었습니다!")
+                        st.warning("변경사항이 감지되었습니다!")
 
                 with col3:
                     save_button = st.button(
@@ -111,9 +114,9 @@ class ProjectView:
                         key="save_active_projects"
                     )
 
-                # 6: 저장 버튼 처리
+                # 5: 저장 버튼 처리
                 if save_button and changes_detected:
-                    self._handle_bulk_project_update(df, edited_df, "진행 중")
+                    self._handle_bulk_project_update(df, edited_df)
 
             else:
                 st.info("진행 중인 프로젝트가 없습니다.")
@@ -127,10 +130,16 @@ class ProjectView:
     def _render_archived_projects(self):
         """아카이브 프로젝트 목록 섹션"""
         try:
-            st.header("📚 아카이브")
+            st.markdown("---")
+            st.header("아카이브")
 
-            # 1: 아카이브 프로젝트 데이터 가져오기
-            archived_projects = self.controller.get_archived_projects()
+            # 1: 아카이브 프로젝트 데이터 캐싱
+            session_key = 'archived_projects'
+            if session_key not in st.session_state:
+                archived_projects = self.controller.get_archived_projects()
+                st.session_state[session_key] = archived_projects
+            else:
+                archived_projects = st.session_state[session_key]
 
             if archived_projects:
                 # 2: 테이블 데이터 준비
@@ -149,8 +158,11 @@ class ProjectView:
 
                 # 3: 데이터프레임 생성 (읽기 전용)
                 df = pd.DataFrame(table_data)
-                st.info("📖 아카이브된 프로젝트는 **읽기 전용**입니다.")
-                st.dataframe(df, use_container_width=True, hide_index=True)
+                st.dataframe(
+                    df,
+                    use_container_width=True,
+                    hide_index=True,
+                )
 
             else:
                 st.info("아카이브된 프로젝트가 없습니다.")
@@ -161,6 +173,7 @@ class ProjectView:
             self.logger.error(f"❌ 아카이브 섹션 렌더링 실패: {str(e)}")
             st.error("아카이브를 불러오는데 실패했습니다.")
 
+    # ===== 이벤트 핸들러 메서드들 =====
     def _handle_sync_button(self):
         """노션 동기화 버튼 처리"""
         try:
@@ -171,6 +184,9 @@ class ProjectView:
                 updated = sync_result.get('updated', 0)
                 deleted = sync_result.get('deleted', 0)
 
+                # 1: 캐시 생명주기 관리 호출
+                self._manage_session_lifecycle("sync", sync_result)
+
                 st.session_state.sync_toast = f"✅ 동기화 완료: 신규 {created}, 수정 {updated}, 삭제 {deleted}"
                 st.rerun()
 
@@ -178,10 +194,10 @@ class ProjectView:
             st.session_state.error_toast = f"❌ 동기화 실패: {str(e)}"
             st.rerun()
 
-    def _handle_bulk_project_update(self, original_df, edited_df, project_type="진행 중"):
+    def _handle_bulk_project_update(self, original_df, edited_df):
         """프로젝트 일괄 업데이트 처리"""
         try:
-            # 1: 변경된 행들 찾기
+            # 1: 변경된 값 추적
             changes = []
             for idx, (orig_row, edit_row) in enumerate(zip(original_df.itertuples(), edited_df.itertuples())):
                 project_id = orig_row.ID
@@ -190,16 +206,23 @@ class ProjectView:
                 edit_target = edit_row.목표치
                 edit_initial = edit_row.초기값
 
-                # 2: 변경사항 저장
                 if orig_target != edit_target or orig_initial != edit_initial:
                     changes.append({
                         'id': project_id,
                         'target_value': edit_target,
                         'initial_progress': edit_initial,
                     })
-            # 3: 변경사항 업데이트
+
+            # 2: 변경사항 업데이트
             with st.spinner(f"{len(changes)}개 프로젝트 진행률 업데이트 중..."):
                 updated_count = self.controller.bulk_update_projects(changes)
+
+                # 캐시 생명주기 관리 호출 (진행 중 프로젝트만 편집 가능)
+                update_result = {
+                    'updated_count': updated_count
+                }
+                self._manage_session_lifecycle("update", update_result)
+
                 st.session_state.update_toast = f"✅ {updated_count}개 프로젝트 진행률 업데이트 완료!"
                 st.rerun()
 
@@ -207,3 +230,42 @@ class ProjectView:
         except Exception as e:
             st.session_state.error_toast = f"❌ 프로젝트 진행률 업데이트 실패: {str(e)}"
             st.rerun()
+
+    # ===== 캐시 관리 메서드들 =====
+    def _manage_session_lifecycle(self, operation_type: str, operation_result: Dict):
+        """캐시 생명주기 관리 통합 메서드
+
+        Args:
+            operation_type (str): 작업 유형 ('sync', 'update')
+            operation_result (Dict): 작업 결과 정보
+        """
+
+        if operation_type == "sync":
+            # 1: 노션 동기화 결과에 따른 캐시 관리
+            created = operation_result.get('created', 0)
+            updated = operation_result.get('updated', 0)
+            deleted = operation_result.get('deleted', 0)
+
+            if created > 0 or updated > 0 or deleted > 0:
+                self._clear_all_project_session()
+
+        elif operation_type == "update":
+        # 2: 프로젝트 업데이트 결과에 따른 캐시 관리
+            updated_count = operation_result.get('updated_count', 0)
+            if updated_count > 0:
+                self._clear_active_projects_session()
+
+    def _clear_active_projects_session(self):
+        """진행 중 프로젝트 캐시만 무효화"""
+        if 'active_projects' in st.session_state:
+            del st.session_state['active_projects']
+
+    def _clear_archived_projects_session(self):
+        """아카이브 프로젝트 캐시만 무효화"""
+        if 'archived_projects' in st.session_state:
+            del st.session_state['archived_projects']
+
+    def _clear_all_project_session(self):
+        """모든 프로젝트 캐시 무효화"""
+        self._clear_active_projects_session()
+        self._clear_archived_projects_session()
