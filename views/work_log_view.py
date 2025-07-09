@@ -43,12 +43,12 @@ class WorkLogView:
             st.markdown(f"📅 : {today.strftime('%Y-%m-%d')} ({weekday_kr})")
 
             # 2: 캐싱된 오늘 데이터 로드
-            cache_key = f'today_work_data_{today.strftime("%Y-%m-%d")}'
-            if cache_key not in st.session_state:
+            session_key = f'today_work_data_{today.strftime("%Y-%m-%d")}'
+            if session_key not in st.session_state:
                 today_work_data = self.controller.get_today_work_data()
-                st.session_state[cache_key] = today_work_data
+                st.session_state[session_key] = today_work_data
             else:
-                today_work_data = st.session_state[cache_key]
+                today_work_data = st.session_state[session_key]
 
             if today_work_data:
                 # 3: 데이터프레임 생성
@@ -201,7 +201,7 @@ class WorkLogView:
         with col2:
             changes_detected = not original_df.equals(edited_df)
             if changes_detected:
-                st.warning("📝 변경사항이 감지되었습니다!")
+                st.warning("변경사항이 감지되었습니다!")
 
         with col3:
             save_button = st.button(
@@ -243,7 +243,7 @@ class WorkLogView:
                     updated_count = self.controller.update_work_logs(changes)  # 통합 메서드
 
                 # 3: 캐시 무효화
-                self._clear_work_log_cache(update_type)
+                self._clear_work_log_session(update_type)
 
                 # 4: 성공 메시지
                 st.session_state.work_save_toast = f"✅ {updated_count}개 작업 로그가 저장되었습니다!"
@@ -255,7 +255,7 @@ class WorkLogView:
             st.session_state.work_error_toast = f"❌ 작업 로그 저장 실패: {str(e)}"
             st.rerun()
 
-    def _clear_work_log_cache(self, update_type: str):
+    def _clear_work_log_session(self, update_type: str):
         """캐시 무효화"""
         # 1: 오늘 캐시 제거
         if update_type == "today":

@@ -126,11 +126,7 @@ class WorkLogService:
     def update_work_logs(self, changes: List[Dict[str, Any]]) -> int:
         """작업 로그 업데이트 (INSERT는 get_today_work_data에서 이미 처리됨)"""
         try:
-            # 1: 빈 변경사항 체크
-            if not changes:
-                return 0
-
-            # 2: 데이터 검증
+            # 1: 데이터 검증
             validated_changes = []
             invalid_count = 0
 
@@ -140,14 +136,14 @@ class WorkLogService:
                 else:
                     invalid_count += 1
 
-            # 3: 검증 실패 처리
+            # 2: 검증 실패 처리
             if not validated_changes:
                 raise ValueError("⚙️❌ 유효한 작업 로그 데이터가 없습니다")
 
             if invalid_count > 0:
                 raise ValueError(f"⚙️❌ 잘못된 작업 로그 데이터 {invalid_count}개가 발견되었습니다")
 
-            # 4: 단순 업데이트만 수행 (로그는 이미 존재함이 보장됨)
+            # 3: 단순 업데이트만 수행 (로그는 이미 존재함이 보장됨)
             updated_count = self.work_log_repo.bulk_update(validated_changes)
 
             return updated_count
