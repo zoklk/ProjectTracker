@@ -54,7 +54,7 @@ class ProjectRepository:
             return None
 
 
-    # ===== 생성 메서드들 (Entity 반환) =====
+    # ===== 생성 메서드들 (성공 여부 반환) =====
     def insert(self, project: Project) -> None:
         """새 프로젝트 생성 - 성공 여부 반환"""
         with db_manager.get_session_context() as session:
@@ -71,7 +71,7 @@ class ProjectRepository:
 
         return len(projects)
 
-    # ===== 수정 메서드들 (Entity 반환) =====
+    # ===== 수정 메서드들 (성공 여부 반환) =====
     def update(self, project: Project) -> None:
         """프로젝트 수정 - 성공 여부 반환"""
         with db_manager.get_session_context() as session:
@@ -113,7 +113,7 @@ class ProjectRepository:
 
         return updated_count
 
-    # ===== 삭제 메서드들 =====
+    # ===== 삭제 메서드들 (성공 여부 반환) =====
     def delete(self, project_id: int) -> bool:
         """프로젝트 삭제"""
         with db_manager.get_session_context() as session:

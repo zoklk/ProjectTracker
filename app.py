@@ -12,7 +12,6 @@ def initialize_app():
     # 2. 앱 로거 생성 및 시작 로그
     from config import get_logger
     logger = get_logger(__name__)
-
     logger.info("🚀 ProjectTracker 애플리케이션 시작")
     logger.info(f"📅 시작 시간: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
