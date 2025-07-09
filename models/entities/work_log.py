@@ -102,14 +102,15 @@ class WorkLog(Base):
             return 0.0
         return self.progress_added / self.hours_spent
 
-    @property
-    def formatted_date(self) -> str:
-        """사용자 친화적인 날짜 형식"""
-        return self.work_date.strftime("%Y-%m-%d (%a)")
+    # ===== Base.to_dict() 오버라이드 =====
+    def to_dict(self) -> dict:
+        """Base의 to_dict()를 오버라이드"""
+        # 1: 기본 컬럼들은 Base의 방식 사용
+        base_dict = super().to_dict()
 
-    @property
-    def formatted_hours(self) -> str:
-        """시간을 시:분 형식으로 표시"""
-        hours = int(self.hours_spent)
-        minutes = int((self.hours_spent % 1) * 60)
-        return f"{hours}시간 {minutes}분"
+        # 2: property 추가
+        base_dict.update({
+            'efficiency': self.efficiency,
+        })
+
+        return base_dict
