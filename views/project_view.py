@@ -62,12 +62,12 @@ class ProjectView:
             st.header("진행 중 프로젝트")
 
             # 1: 진행 중 프로젝트 데이터 캐싱
-            session_key = 'active_projects'
-            if session_key not in st.session_state:
+            cache_key = 'active_projects'
+            if cache_key not in st.session_state:
                 active_projects = self.controller.get_active_projects()
-                st.session_state[session_key] = active_projects
+                st.session_state[cache_key] = active_projects
             else:
-                active_projects = st.session_state[session_key]
+                active_projects = st.session_state[cache_key]
 
             if active_projects:
                 # 2: 테이블 데이터 준비
@@ -134,12 +134,12 @@ class ProjectView:
             st.header("아카이브")
 
             # 1: 아카이브 프로젝트 데이터 캐싱
-            session_key = 'archived_projects'
-            if session_key not in st.session_state:
+            cache_key = 'archived_projects'
+            if cache_key not in st.session_state:
                 archived_projects = self.controller.get_archived_projects()
-                st.session_state[session_key] = archived_projects
+                st.session_state[cache_key] = archived_projects
             else:
-                archived_projects = st.session_state[session_key]
+                archived_projects = st.session_state[cache_key]
 
             if archived_projects:
                 # 2: 테이블 데이터 준비
@@ -185,7 +185,7 @@ class ProjectView:
                 deleted = sync_result.get('deleted', 0)
 
                 # 1: 캐시 생명주기 관리 호출
-                self._manage_session_lifecycle("sync", sync_result)
+                self._manage_cache_lifecycle("sync", sync_result)
 
                 st.session_state.sync_toast = f"✅ 동기화 완료: 신규 {created}, 수정 {updated}, 삭제 {deleted}"
                 st.rerun()
@@ -221,7 +221,7 @@ class ProjectView:
                 update_result = {
                     'updated_count': updated_count
                 }
-                self._manage_session_lifecycle("update", update_result)
+                self._manage_cache_lifecycle("update", update_result)
 
                 st.session_state.update_toast = f"✅ {updated_count}개 프로젝트 진행률 업데이트 완료!"
                 st.rerun()
@@ -232,7 +232,7 @@ class ProjectView:
             st.rerun()
 
     # ===== 캐시 관리 메서드들 =====
-    def _manage_session_lifecycle(self, operation_type: str, operation_result: Dict):
+    def _manage_cache_lifecycle(self, operation_type: str, operation_result: Dict):
         """캐시 생명주기 관리 통합 메서드
 
         Args:
@@ -240,32 +240,38 @@ class ProjectView:
             operation_result (Dict): 작업 결과 정보
         """
 
+        # 1: 노션 동기화 결과에 따른 캐시 관리
         if operation_type == "sync":
-            # 1: 노션 동기화 결과에 따른 캐시 관리
             created = operation_result.get('created', 0)
             updated = operation_result.get('updated', 0)
             deleted = operation_result.get('deleted', 0)
 
             if created > 0 or updated > 0 or deleted > 0:
-                self._clear_all_project_session()
+                self._clear_all_project_cache()
 
-        elif operation_type == "update":
+                # +: dashboard에 영향
+                st.session_state.project_updated= True
+
         # 2: 프로젝트 업데이트 결과에 따른 캐시 관리
+        elif operation_type == "update":
             updated_count = operation_result.get('updated_count', 0)
             if updated_count > 0:
-                self._clear_active_projects_session()
+                self._clear_active_projects_cache()
 
-    def _clear_active_projects_session(self):
+                # +: dashboard에 영향
+                st.session_state.project_updated= True
+
+    def _clear_active_projects_cache(self):
         """진행 중 프로젝트 캐시만 무효화"""
         if 'active_projects' in st.session_state:
             del st.session_state['active_projects']
 
-    def _clear_archived_projects_session(self):
+    def _clear_archived_projects_cache(self):
         """아카이브 프로젝트 캐시만 무효화"""
         if 'archived_projects' in st.session_state:
             del st.session_state['archived_projects']
 
-    def _clear_all_project_session(self):
+    def _clear_all_project_cache(self):
         """모든 프로젝트 캐시 무효화"""
-        self._clear_active_projects_session()
-        self._clear_archived_projects_session()
+        self._clear_active_projects_cache()
+        self._clear_archived_projects_cache()
