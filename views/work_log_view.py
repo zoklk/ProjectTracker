@@ -43,12 +43,12 @@ class WorkLogView:
             st.markdown(f"📅 : {today.strftime('%Y-%m-%d')} ({weekday_kr})")
 
             # 2: 캐싱된 오늘 데이터 로드
-            session_key = f'today_work_data_{today.strftime("%Y-%m-%d")}'
-            if session_key not in st.session_state:
+            cache_key = f'today_work_data_{today.strftime("%Y-%m-%d")}'
+            if cache_key not in st.session_state:
                 today_work_data = self.controller.get_today_work_data()
-                st.session_state[session_key] = today_work_data
+                st.session_state[cache_key] = today_work_data
             else:
-                today_work_data = st.session_state[session_key]
+                today_work_data = st.session_state[cache_key]
 
             if today_work_data:
                 # 3: 데이터프레임 생성
@@ -121,7 +121,6 @@ class WorkLogView:
                         value=date.today() - timedelta(days=1),  # 어제까지
                         key="past_end_date"
                     )
-                days = (end_date - start_date).days + 1
             else:
                 days = period_options[selected_period]
                 end_date = date.today() - timedelta(days=1)  # 어제까지
@@ -243,7 +242,10 @@ class WorkLogView:
                     updated_count = self.controller.update_work_logs(changes)  # 통합 메서드
 
                 # 3: 캐시 무효화
-                self._clear_work_log_session(update_type)
+                self._clear_work_log_cache(update_type)
+
+                # +: dashboard에 영향
+                st.session_state.work_log_updated = True
 
                 # 4: 성공 메시지
                 st.session_state.work_save_toast = f"✅ {updated_count}개 작업 로그가 저장되었습니다!"
@@ -255,7 +257,7 @@ class WorkLogView:
             st.session_state.work_error_toast = f"❌ 작업 로그 저장 실패: {str(e)}"
             st.rerun()
 
-    def _clear_work_log_session(self, update_type: str):
+    def _clear_work_log_cache(self, update_type: str):
         """캐시 무효화"""
         # 1: 오늘 캐시 제거
         if update_type == "today":

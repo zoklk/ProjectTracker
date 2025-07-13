@@ -91,7 +91,7 @@ class WorkLogService:
             # +: 날짜 유효성 검사
             if start_date > end_date:
                 raise ValueError("⚙️❌ 시작일이 종료일보다 늦을 수 없습니다")
-            if start_date > date.today() or end_date > date.today():
+            if end_date > date.today():
                 raise ValueError("⚙️❌ 미래 날짜는 조회할 수 없습니다")
 
             # 1: 기간별 작업 로그 + 프로젝트 정보 조회
@@ -186,3 +186,27 @@ class WorkLogService:
 
         except Exception:
             return False
+
+    # ===== 효율성 통계 메서드들 (dashboard 용) ====
+    def get_efficiency_stats_for_projects(self, project_ids: List[int]) -> Dict[int, Dict]:
+        """
+        여러 프로젝트의 효율성 통계를 한 번에 조회
+
+        Args:
+            project_ids: 조회할 프로젝트 ID 리스트
+
+        Returns:
+            Dict[project_id, {
+                'avg_efficiency': float,      # 평균 효율성
+                'total_hours': float,         # 작업시간
+                'avg_hours_per_day': float    # 일 평균 작업시간
+            }]
+        """
+        try:
+            if not project_ids:
+                return {}
+
+            return self.work_log_repo.get_efficiency_stats_by_projects(project_ids)
+
+        except Exception as e:
+            raise Exception(f"⚙️❌ 프로젝트 효율성 통계 조회 실패: {str(e)}")
