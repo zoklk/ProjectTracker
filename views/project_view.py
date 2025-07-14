@@ -250,7 +250,8 @@ class ProjectView:
                 self._clear_all_project_cache()
 
                 # +: dashboard에 영향
-                st.session_state.project_updated= True
+                st.session_state.project_updated_dash= True
+                st.session_state.project_updated_work_log = True
 
         # 2: 프로젝트 업데이트 결과에 따른 캐시 관리
         elif operation_type == "update":
@@ -259,7 +260,8 @@ class ProjectView:
                 self._clear_active_projects_cache()
 
                 # +: dashboard에 영향
-                st.session_state.project_updated= True
+                st.session_state.project_updated_dash= True
+                st.session_state.project_updated_work_log = True
 
     def _clear_active_projects_cache(self):
         """진행 중 프로젝트 캐시만 무효화"""
