@@ -28,9 +28,28 @@ class WorkLogView:
             st.toast(st.session_state.work_error_toast)
             del st.session_state.work_error_toast
 
+        # +: 다른 페이지 변경 감지 및 캐시 무효화
+        self._check_auto_refresh()
+
         # 2: 컴포넌트 렌더링
         self._render_today_work_section()
         self._render_past_work_section()
+
+    def _check_auto_refresh(self):
+        """
+        다른 페이지에서의 변경사항 자동 감지 및 캐시 무효화
+
+        동작 방식:
+        1. st.session_state에서 변경 플래그 확인
+        2. 플래그가 있으면 관련 캐시 삭제
+        3. 플래그 삭제 (중복 처리 방지)
+        4. 사용자에게 갱신 알림
+        """
+        # +: Project 변경 감지
+        if hasattr(st.session_state, 'project_updated_work_log'):
+            self._clear_all_work_log_cash()
+            del st.session_state.project_updated_work_log
+            st.session_state.dashboard_success_toast = "✅ Project 변경으로 작업로그가 갱신되었습니다!"
 
     def _render_today_work_section(self):
         """상단: 작업 기록 섹션"""
@@ -242,7 +261,10 @@ class WorkLogView:
                     updated_count = self.controller.update_work_logs(changes)  # 통합 메서드
 
                 # 3: 캐시 무효화
-                self._clear_work_log_cache(update_type)
+                if update_type == "today":
+                    self._clear_today_work_log_cash()
+                else:
+                    self._clear_past_work_log_cash()
 
                 # +: dashboard에 영향
                 st.session_state.work_log_updated = True
@@ -257,14 +279,18 @@ class WorkLogView:
             st.session_state.work_error_toast = f"❌ 작업 로그 저장 실패: {str(e)}"
             st.rerun()
 
-    def _clear_work_log_cache(self, update_type: str):
-        """캐시 무효화"""
-        # 1: 오늘 캐시 제거
-        if update_type == "today":
-            today_key = f'today_work_data_{date.today().strftime("%Y-%m-%d")}'
-            if today_key in st.session_state:
-                del st.session_state[today_key]
-        # 2: 과거 캐시 제거
-        else:
-            if 'past_work_data' in st.session_state:
-                del st.session_state['past_work_data']
+    def _clear_today_work_log_cash(self):
+        """오늘 작업 로그 캐시 무효화"""
+        today_key = f'today_work_data_{date.today().strftime("%Y-%m-%d")}'
+        if today_key in st.session_state:
+            del st.session_state[today_key]
+
+    def _clear_past_work_log_cash(self):
+        """과거 작업 로그 캐시 무효화"""
+        if 'past_work_data' in st.session_state:
+            del st.session_state['past_work_data']
+
+    def _clear_all_work_log_cash(self):
+        """모든 작업 로그 캐시 무효화"""
+        self._clear_today_work_log_cash()
+        self._clear_past_work_log_cash()
