@@ -49,8 +49,7 @@ class WorkLogView:
         if hasattr(st.session_state, 'project_updated_work_log'):
             self._clear_all_work_log_cash()
             del st.session_state.project_updated_work_log
-            st.session_state.dashboard_success_toast = "✅ Project 변경으로 작업로그가 갱신되었습니다!"
-
+            
     def _render_today_work_section(self):
         """상단: 작업 기록 섹션"""
         try:
@@ -266,8 +265,9 @@ class WorkLogView:
                 else:
                     self._clear_past_work_log_cash()
 
-                # +: dashboard에 영향
+                # +: dashboard, projects에 영향
                 st.session_state.work_log_updated = True
+                st.session_state.work_log_updated_project = True
 
                 # 4: 성공 메시지
                 st.session_state.work_save_toast = f"✅ {updated_count}개 작업 로그가 저장되었습니다!"

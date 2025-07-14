@@ -34,10 +34,28 @@ class ProjectView:
             st.toast(st.session_state.update_toast)
             del st.session_state.update_toast
 
+        # +: 다른 페이지 변경 감지 및 캐시 무효화
+        self._check_auto_refresh()
+
         # 2: 컴포넌트 랜더링
         self._render_sync_section()
         self._render_active_projects()
         self._render_archived_projects()
+
+    def _check_auto_refresh(self):
+        """
+        다른 페이지에서의 변경사항 자동 감지 및 캐시 무효화
+
+        동작 방식:
+        1. st.session_state에서 변경 플래그 확인
+        2. 플래그가 있으면 관련 캐시 삭제
+        3. 플래그 삭제 (중복 처리 방지)
+        4. 사용자에게 갱신 알림
+        """
+        # +: Project 변경 감지
+        if hasattr(st.session_state, 'work_log_updated_project'):
+            self._clear_all_project_cache()
+            del st.session_state.work_log_updated_project
 
     # ===== UI 컴포넌트 렌더링 메서드들 =====
     def _render_sync_section(self):
