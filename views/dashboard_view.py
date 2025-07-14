@@ -59,15 +59,15 @@ class DashboardView:
         4. 사용자에게 갱신 알림
         """
         # 1: WorkLog 변경 감지
-        if hasattr(st.session_state, 'work_log_updated'):
+        if hasattr(st.session_state, 'work_log_updated_dash'):
             self._clear_worklog_affected_cache()
-            del st.session_state.work_log_updated
+            del st.session_state.work_log_updated_dash
             st.session_state.dashboard_success_toast = "✅ WorkLog 변경으로 대시보드가 갱신되었습니다!"
 
         # 2: Project 변경 감지
-        if hasattr(st.session_state, 'project_updated'):
+        if hasattr(st.session_state, 'project_updated_dash'):
             self._clear_project_affected_cache()
-            del st.session_state.project_updated
+            del st.session_state.project_updated_dash
             st.session_state.dashboard_success_toast = "✅ Project 변경으로 대시보드가 갱신되었습니다!"
 
     def _render_refresh_button(self):
