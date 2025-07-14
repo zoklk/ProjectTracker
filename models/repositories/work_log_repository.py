@@ -1,7 +1,7 @@
 from typing import List, Optional, Dict, Any
 from datetime import date
 from sqlalchemy.orm import Session
-from sqlalchemy import and_, or_
+from sqlalchemy import and_, func, Float
 
 from ..database.connection import db_manager
 from ..entities.work_log import WorkLog
@@ -74,3 +74,55 @@ class WorkLogRepository:
                 updated_count += result
 
             return updated_count
+
+
+    # ===== 효율성 통계 메서드들 (dashboard 용) =====
+    def get_efficiency_stats_by_projects(self, project_ids: List[int]) -> Dict[int, Dict]:
+        """
+        Returns:
+            Dict[project_id, {
+                'avg_efficiency': float,                    # 평균 효율성 (진행량/시간)
+                'worked_hours': float,                       # 총 작업시간
+                'avg_hours_per_day': float                  # 현실적 일평균 작업시간 (작업 못한 날 포함)
+            }]
+        """
+        if not project_ids:
+            return {}
+
+        with db_manager.get_session_context() as session:
+            result = session.query(
+                WorkLog.project_id,
+                func.avg(
+                    func.cast(WorkLog.progress_added, Float) /
+                    func.nullif(WorkLog.hours_spent, 0)
+                ).label('avg_efficiency'),
+                func.sum(WorkLog.hours_spent).label('worked_hours'),
+                func.min(WorkLog.work_date).label('first_work_date'),
+                func.max(WorkLog.work_date).label('last_work_date')
+            ).filter(
+                WorkLog.project_id.in_(project_ids)
+            ).group_by(WorkLog.project_id).all()
+
+            # 결과를 딕셔너리로 변환
+            stats_dict = {}
+            for row in result:
+                project_id = row.project_id
+                avg_efficiency = row.avg_efficiency or 0
+                worked_hours = row.worked_hours or 0
+                first_work_date = row.first_work_date
+                last_work_date = row.last_work_date
+
+                # 현실적 일 평균 작업시간 계산 (전체 기간 기준)
+                if first_work_date and last_work_date:
+                    total_period_days = (last_work_date - first_work_date).days + 1
+                    avg_hours_per_day = worked_hours / total_period_days
+                else:
+                    avg_hours_per_day = 0
+
+                stats_dict[project_id] = {
+                    'avg_efficiency': float(avg_efficiency),
+                    'worked_hours': float(worked_hours),
+                    'avg_hours_per_day': float(avg_hours_per_day)
+                }
+
+            return stats_dict
